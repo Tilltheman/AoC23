@@ -19,13 +19,13 @@ fn create_number_part2(line: &str) -> u32 {
     let character_2: char = oline.chars().nth(num_char_pos_2).unwrap();
     let re_first = Regex::new(r"(^.*?(?<first>\d|one|two|three|four|five|six|seven|eight|nine)).*((?<last>\d|one|two|three|four|five|six|seven|eight|nine).*?$)").unwrap();
     let Some(caps) = re_first.captures(line) else {
-        println!("No Matching! Must be overlapping");
+        // println!("No Matching! Must be overlapping");
         let re_second = Regex::new(r"(^.*?(?<only>\d|one|two|three|four|five|six|seven|eight|nine)).*$").unwrap();
         let Some(caps2) = re_second.captures(line) else {
             println!("Out of ideas what happened!");
             return 0;
         };
-        println!("Matched a single time: {}, happily this only happen in digits in my data", &caps2["only"]);
+        // println!("Matched a single time: {}, happily this only happen in digits in my data", &caps2["only"]);
         let result_str = format!("{}{}", &caps2["only"], &caps2["only"]);
         return result_str.parse().unwrap();
     };
@@ -53,7 +53,7 @@ fn create_number_part2(line: &str) -> u32 {
         "nine" | "9" => "9",
         _ => "0",
     };
-    println!("Matched first: {}, last: {}", first, last);
+    // println!("Matched first: {}, last: {}", first, last);
     let result_str2 = format!("{}{}", first, last);
     return result_str2.parse().unwrap();
 }
