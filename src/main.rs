@@ -1,6 +1,7 @@
 use std::{env, process};
 
 mod one;
+mod two;
 
 fn main() {
     let day: u32;
@@ -25,6 +26,7 @@ fn main() {
 
     match day {
         1 => one::solve(),
+        2 => two::solve(),
         _ => {
             println!("Day {} not (yet) solved.", day);
         }
