@@ -14,9 +14,9 @@ fn create_number_part1(line: &str) -> u32 {
 fn create_number_part2(line: &str) -> u32 {
     let oline: String = String::from(line);
     let num_char_pos_1: usize = oline.find(char::is_numeric).unwrap();
-    let character_1: char = oline.chars().nth(num_char_pos_1).unwrap();
+    let _character_1: char = oline.chars().nth(num_char_pos_1).unwrap();
     let num_char_pos_2: usize = oline.rfind(char::is_numeric).unwrap();
-    let character_2: char = oline.chars().nth(num_char_pos_2).unwrap();
+    let _character_2: char = oline.chars().nth(num_char_pos_2).unwrap();
     let re_first = Regex::new(r"(^.*?(?<first>\d|one|two|three|four|five|six|seven|eight|nine)).*((?<last>\d|one|two|three|four|five|six|seven|eight|nine).*?$)").unwrap();
     let Some(caps) = re_first.captures(line) else {
         // println!("No Matching! Must be overlapping");
