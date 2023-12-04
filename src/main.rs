@@ -3,6 +3,7 @@ use std::{env, process};
 mod one;
 mod two;
 mod three;
+mod four;
 
 fn main() {
     let day: u32;
@@ -29,6 +30,7 @@ fn main() {
         1 => one::solve(),
         2 => two::solve(),
         3 => three::solve(),
+        4 => four::solve(),
         _ => {
             println!("Day {} not (yet) solved.", day);
         }
