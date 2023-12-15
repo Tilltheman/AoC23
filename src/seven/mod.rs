@@ -1,8 +1,9 @@
 use std::str::FromStr;
 use std::cmp::{PartialOrd, PartialEq, Ordering};
 use regex::Regex;
+use std::collections::HashMap;
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug, Hash)]
 enum CType {
     Joker,
     Two,
@@ -32,14 +33,14 @@ enum HType {
 }
 
 
-#[derive(PartialOrd, Ord, Clone, Debug)]
+#[derive(PartialOrd, Ord, Clone, Debug, Hash)]
 struct Card {
     t: CType,
 }
 
 impl PartialEq for Card {
     fn eq(&self, other: &Self) -> bool {
-        return self.t == other.t || self.t == CType::Joker || other.t == CType::Joker;
+        return self.t == other.t; //|| self.t == CType::Joker || other.t == CType::Joker;
     }
 }
 
@@ -98,97 +99,27 @@ impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
         if self.h_type == other.h_type {
             if self.first != other.first {
-                if self.first > other.first {
-                    println!("bigger1");
-                    return Ordering::Greater;
-                } else if self.first < other.first {
-                    println!("smaller1");
-                    return Ordering::Less;
-                }
+                self.first.cmp(&other.first)
+            } else if self.second != other.second {
+                self.second.cmp(&other.second)
+            } else if self.third != other.third {
+                self.third.cmp(&other.third)
+            } else if self.fourth != other.fourth {
+                self.fourth.cmp(&other.fourth)
+            } else if self.fifth != other.fifth {
+                self.fifth.cmp(&other.fifth)
             } else {
-                if self.first.t == CType::Joker {
-                    return Ordering::Less;
-                } else if other.first.t == CType::Joker {
-                    return Ordering::Greater;
-                }
-            }
-            if self.second != other.second {
-                if self.second > other.second {
-                    println!("bigger2");
-                    return Ordering::Greater;
-                } else if self.second < other.second {
-                    println!("smaller2");
-                    return Ordering::Less;
-                }
-            } else {
-                if self.second.t == CType::Joker {
-                    return Ordering::Less;
-                } else if other.second.t == CType::Joker {
-                    return Ordering::Greater;
-                }
-            }
-            if self.third != other.third {
-                if self.third > other.third {
-                    println!("bigger3");
-                    return Ordering::Greater;
-                } else if self.third < other.third {
-                    println!("smaller3");
-                    return Ordering::Less;
-                }
-            } else {
-                if self.third.t == CType::Joker {
-                    println!("Joker3 less");
-                    return Ordering::Less
-                } else if other.third.t == CType::Joker {
-                    println!("Joker3 greater");
-                    return Ordering::Greater;
-                }
-            }
-            if self.fourth != other.fourth {
-                if self.fourth > other.fourth {
-                    println!("bigger4");
-                    return Ordering::Greater;
-                } else if self.fourth < other.fourth {
-                    println!("smaller4");
-                    return Ordering::Less;
-                }
-            } else {
-                if self.fourth.t == CType::Joker {
-                    println!("Joker4 less");
-                    return Ordering::Less;
-                } else if other.fourth.t == CType::Joker {
-                    println!("Joker4 greater");
-                    return Ordering::Greater;
-                }
-            }
-            if self.fifth != other.fifth {
-                if self.fifth > other.fifth {
-                    println!("bigger5");
-                    return Ordering::Greater;
-                } else if self.fifth < other.fifth {
-                    println!("smaller5");
-                    return Ordering::Less;
-                } else {
-                    return Ordering::Equal;
-                }
-            } else {
-                if self.fifth.t == CType::Joker {
-                    return Ordering::Less;
-                } else if other.fifth.t == CType::Joker {
-                    return Ordering::Greater;
-                }
                 return Ordering::Equal;
             }
-            panic!();
         } else {
-            return self.h_type.cmp(&other.h_type)
+            self.h_type.cmp(&other.h_type)
         }
     }
 }
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
@@ -207,101 +138,114 @@ impl FromStr for Hand {
         let t = Card::from_str(&caps["t"]).unwrap();
         let f = Card::from_str(&caps["f"]).unwrap();
         let i = Card::from_str(&caps["i"]).unwrap();
+        let mut hashmap = HashMap::new();
         let mut h = Hand { first: fi.clone(), second: s.clone(), third: t.clone(), fourth: f.clone(), fifth: i.clone(), bid: bid, h_type: HType::HighCard };
-        if h.is_five_of_kind() {
-            h.h_type = HType::Five;
-        } else if h.is_full_house() {
-            h.h_type = HType::FullHouse;
-        } else if h.is_four_of_kind() {
-            h.h_type = HType::Four;
-        } else if h.is_three_of_kind() {
-            h.h_type = HType::Three;
-        } else if h.is_two_pair() {
-            h.h_type = HType::TwoPair;
-        } else if h.is_pair() {
-            h.h_type = HType::Pair;
-        } else {
-            h.h_type = HType::HighCard;
+        hashmap.insert(fi, 1);
+        hashmap.entry(s).and_modify(|c| *c += 1).or_insert(1);
+        hashmap.entry(t).and_modify(|c| *c += 1).or_insert(1);
+        hashmap.entry(f).and_modify(|c| *c += 1).or_insert(1);
+        hashmap.entry(i).and_modify(|c| *c += 1).or_insert(1);
+        let mut vec: Vec<(Card, u32)> = hashmap.into_iter().collect();
+        vec.sort_by(|a, b| a.0.cmp(&b.0));
+        // println!("{:?}", vec);
+        let len = vec.len();
+        // println!("Vec len: {len}");
+        // println!("vec[0].0.t {:?}", vec[0].0.t);
+        match len {
+            1 => h.h_type = HType::Five,
+            2 => if vec[0].0.t == CType::Joker {
+                    h.h_type = HType::Five;
+                } else {
+                    // println!("{:?} {:?}", vec[0],vec[1]);
+                    if vec[0].1 == 1 || vec[1].1 == 1 {
+                        // Four
+                        h.h_type = HType::Four;
+                    } else if vec[0].1 == 2 || vec[1].1 == 2 {
+                        h.h_type = HType::FullHouse;
+                    } else {
+                        panic!();
+                    }
+                },
+            3 => if vec[0].0.t == CType::Joker {
+                    let joker_count = vec[0].1;
+                    // println!("Joker count: {joker_count} {} {}", vec[1].1, vec[2].1);
+                    if vec[1].1 > vec[2].1 {
+                        // joker should expand to first
+                        match vec[1].1 + joker_count {
+                            3 => h.h_type = HType::Three,
+                            4 => h.h_type = HType::Four,
+                            _ => panic!("{}", vec[1].1 + joker_count),
+                        }
+                    } else if vec[2].1 > vec[1].1 {
+                        // joker should expand to second
+                        match vec[2].1 + joker_count {
+                            3 => h.h_type = HType::Three,
+                            4 => h.h_type = HType::Four,
+                            _ => panic!("{}", vec[2].1 + joker_count),
+                        }
+                    } else {
+                        // four of kind
+                        if joker_count == 1 {
+                            h.h_type = HType::FullHouse;
+                        } else {
+                            h.h_type = HType::Four;
+                        }
+                    }
+                } else {
+                    if vec[0].1 == 3 || vec[1].1 == 3 || vec[2].1 == 3 {
+                        // Three
+                        h.h_type = HType::Three;
+                    } else {
+                        // Two pair
+                        h.h_type = HType::TwoPair;
+                    }
+                },
+            4 => if vec[0].0.t == CType::Joker {
+                    // Three
+                    h.h_type = HType::Three;
+                } else {
+                    // Pair
+                    h.h_type = HType::Pair;
+                },
+            5 => if vec[0].0.t == CType::Joker {
+                    // pair
+                    h.h_type = HType::Pair;
+                } else {
+                    h.h_type = HType::HighCard;
+                },
+            _ => panic!(),
         }
-        // println!("{:?}", h.h_type);
         Ok(h)
     }
 }
 
 impl Hand {
     fn is_five_of_kind(&self) -> bool {
-        return (&self.first == &self.second) &&
-            (&self.first == &self.third) &&
-            (&self.first == &self.fourth)  &&
-            (&self.first == &self.fifth);
+        return self.h_type == HType::Five;
     }
 
     fn is_four_of_kind(&self) -> bool {
-        let mut cards: Vec<Card> = vec![
-            self.first.clone(),
-            self.second.clone(),
-            self.third.clone(),
-            self.fourth.clone(),
-            self.fifth.clone(),
-        ];
-        cards.sort();
-        return cards[0] == cards[1] && cards[1] == cards[2] && cards[2] == cards[3] && cards[4] != cards[3] ||
-            cards[0] != cards[1] && cards[1] == cards[2] && cards[2] == cards[3] && cards[3] == cards[4];
+        return self.h_type == HType::Four;
     }
 
     fn is_full_house(&self) -> bool {
-        let mut cards: Vec<Card> = vec![
-            self.first.clone(),
-            self.second.clone(),
-            self.third.clone(),
-            self.fourth.clone(),
-            self.fifth.clone(),
-        ];
-        cards.sort();
-        println!("{:?}", cards);
-        return (cards[0] == cards[1] && cards[1] == cards[2] && cards[3] == cards[4] ||
-            cards[0] == cards[1] && cards[2] == cards[3] && cards[3] == cards[4]) && ! self.is_five_of_kind() && ! self.is_four_of_kind()
+        return self.h_type == HType::FullHouse;
     }
 
     fn is_three_of_kind(&self) -> bool {
-        let mut cards: Vec<Card> = vec![
-            self.first.clone(),
-            self.second.clone(),
-            self.third.clone(),
-            self.fourth.clone(),
-            self.fifth.clone(),
-        ];
-        cards.sort();
-        return (cards[0] == cards[1] && cards[1] == cards[2] ||
-            cards[1] == cards[2] && cards[2] == cards[3] ||
-            cards[2] == cards[3] && cards[3] == cards[4] ) && ! self.is_full_house() && ! self.is_four_of_kind() && ! self.is_five_of_kind()
+        return self.h_type == HType::Three;
     }
 
     fn is_two_pair(&self) -> bool {
-        let mut cards: Vec<Card> = vec![
-            self.first.clone(),
-            self.second.clone(),
-            self.third.clone(),
-            self.fourth.clone(),
-            self.fifth.clone(),
-        ];
-        cards.sort();
-        return (cards[0] == cards[1] && cards[2] == cards[3] ||
-                cards[1] == cards[2] && cards[3] == cards[4] ||
-                cards[0] == cards[1] && cards[3] == cards[4]) && ! self.is_full_house() && !self.is_four_of_kind() && ! self.is_three_of_kind() && ! self.is_five_of_kind()
+        return self.h_type == HType::TwoPair;
     }
 
     fn is_pair(&self) -> bool {
-        let mut cards: Vec<Card> = vec![
-            self.first.clone(),
-            self.second.clone(),
-            self.third.clone(),
-            self.fourth.clone(),
-            self.fifth.clone(),
-        ];
-        cards.sort();
-        return !self.is_two_pair() && !self.is_three_of_kind() && !self.is_four_of_kind() && !self.is_five_of_kind() && !self.is_full_house() &&
-            (cards[0] == cards[1] || cards[1] == cards[2] || cards[2] == cards[3] || cards[3] == cards[4]);
+        return self.h_type == HType::Pair;
+    }
+
+    fn is_high_card(&self) -> bool {
+        return self.h_type == HType::HighCard;
     }
 }
 
@@ -314,7 +258,7 @@ fn solve1(input: &str) -> u128 {
     }
     hands.sort();
     for (i, hand) in hands.iter().enumerate() {
-        println!("i: {} bid: {} type: {:?}", i, hand.bid, hand.h_type);
+        // println!("i: {} bid: {} type: {:?}", i, hand.bid, hand.h_type);
         sum += hand.bid * (i+1) as u128;
     }
     sum
@@ -329,7 +273,7 @@ fn solve2(input: &str) -> u128 {
     }
     hands.sort();
     for (i, hand) in hands.iter().enumerate() {
-        println!("i: {} bid: {} type: {:?}", i, hand.bid, hand.h_type);
+        // println!("i: {} bid: {} type: {:?}, hand {:?}", i, hand.bid, hand.h_type, hand);
         sum += hand.bid * (i+1) as u128;
     }
     sum
@@ -371,204 +315,93 @@ QQQIA 483";
 
     #[test]
     fn test_is_full_house () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Queen },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Jack },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "TTQQQ 123";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(hand.h_type, HType::FullHouse);
         assert_eq!(true, hand.is_full_house());
     }
 
     #[test]
     fn test_is_four_of_kind () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Jack },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "TTTTQ 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(true, hand.is_four_of_kind());
     }
 
     #[test]
     fn test_is_three_of_kind () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Ten },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "TTTKQ 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(true, hand.is_three_of_kind());
     }
 
     #[test]
-    fn test_is_not_three_of_kind () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Queen },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+    fn test_full_house_is_not_three_of_kind () {
+        let line = "JJQQJ 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(false, hand.is_three_of_kind());
     }
 
     #[test]
     fn test_is_two_pair () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Queen },
-            fifth: Card { t: CType::Ten },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "JJKQQ 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(true, hand.is_two_pair());
     }
 
     #[test]
-    fn test_is_not_two_pair () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Queen },
-            fourth: Card { t: CType::Queen },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+    fn test_full_house_is_not_two_pair () {
+        let line = "JKJKJ 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(false, hand.is_two_pair());
     }
 
     #[test]
     fn test_is_pair () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Ten },
-            fourth: Card { t: CType::Nine },
-            fifth: Card { t: CType::Eight },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "JTJ98 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(true, hand.is_pair());
     }
 
     #[test]
     fn test_is_not_pair () {
-        let hand = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Ten },
-            fourth: Card { t: CType::Ten },
-            fifth: Card { t: CType::Eight },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
+        let line = "JJTT8 123";
+        let hand = Hand::from_str(line).unwrap();
         assert_eq!(false, hand.is_pair());
     }
 
     #[test]
     fn test_eq_hands() {
-        let hand_one = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Ten },
-            fourth: Card { t: CType::Ten },
-            fifth: Card { t: CType::Eight },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        let hand_two = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Ten },
-            fourth: Card { t: CType::Ten },
-            fifth: Card { t: CType::Eight },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        assert_eq!(hand_one, hand_two);
+        let line1 = "JJTT2 123";
+        let line2 = "JJTT2 123";
+        let hand1 = Hand::from_str(line1).unwrap();
+        let hand2 = Hand::from_str(line2).unwrap();
+        assert_eq!(hand1, hand2);
     }
 
     #[test]
     fn test_five_bigger_full_house() {
-        let hand_one = Hand {
-            first: Card { t: CType::Jack },
-            second: Card { t: CType::Jack },
-            third: Card { t: CType::Jack },
-            fourth: Card { t: CType::Jack },
-            fifth: Card { t: CType::Jack },
-            bid: 0,
-            h_type: HType::Five,
-        };
-        let hand_two = Hand {
-            first: Card { t: CType::Queen },
-            second: Card { t: CType::Queen },
-            third: Card { t: CType::King },
-            fourth: Card { t: CType::King },
-            fifth: Card { t: CType::Queen },
-            bid: 0,
-            h_type: HType::FullHouse,
-        };
-        assert_eq!(true, hand_one > hand_two);
+        let line1 = "JJJJJ 32";
+        let line2 = "QQKKQ 123";
+        let hand1 = Hand::from_str(line1).unwrap();
+        let hand2 = Hand::from_str(line2).unwrap();
+        assert_eq!(true, hand1 > hand2);
     }
     #[test]
     fn test_high_cards1() {
-        let hand_one = Hand {
-            first: Card { t: CType::Two },
-            second: Card { t: CType::Three },
-            third: Card { t: CType::Four },
-            fourth: Card { t: CType::Five },
-            fifth: Card { t: CType::Six },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        let hand_two = Hand {
-            first: Card { t: CType::Three },
-            second: Card { t: CType::Four },
-            third: Card { t: CType::Five },
-            fourth: Card { t: CType::Six },
-            fifth: Card { t: CType::Seven },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        assert_eq!(true, hand_one < hand_two);
+        let line1 = "23456 123";
+        let line2 = "34567 43";
+        let hand1 = Hand::from_str(line1).unwrap();
+        let hand2 = Hand::from_str(line2).unwrap();
+        assert_eq!(true, hand1 < hand2);
     }
     #[test]
     fn test_high_cards2() {
-        let hand_one = Hand {
-            first: Card { t: CType::Two },
-            second: Card { t: CType::Three },
-            third: Card { t: CType::Four },
-            fourth: Card { t: CType::Five },
-            fifth: Card { t: CType::Six },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        let hand_two = Hand {
-            first: Card { t: CType::Two },
-            second: Card { t: CType::Three },
-            third: Card { t: CType::Five },
-            fourth: Card { t: CType::Six },
-            fifth: Card { t: CType::Seven },
-            bid: 0,
-            h_type: HType::HighCard,
-        };
-        assert_eq!(true, hand_one < hand_two);
+        let line1 = "23456 0";
+        let line2 = "23567 0";
+        let hand1 = Hand::from_str(line1).unwrap();
+        let hand2 = Hand::from_str(line2).unwrap();
+        assert_eq!(true, hand1 < hand2);
     }
 
     #[test]
@@ -585,8 +418,6 @@ QQQIA 483";
         let ten_line = "TTTTT 32";
         let jk_hand = Hand::from_str(jk_line).unwrap();
         let ten_hand = Hand::from_str(ten_line).unwrap();
-        println!("{:?}", jk_hand);
-        println!("{:?}", ten_hand);
         assert_eq!(true, jk_hand < ten_hand);
     }
 
@@ -598,12 +429,12 @@ QQQIA 483";
         assert_eq!(true, hand.is_full_house());
     }
 
-    #[test]
-    fn check_joker_is_equal_than_other() {
-        let jk = Card { t: CType::Joker };
-        let qu = Card { t: CType::Queen };
-        assert_eq!(true, jk == qu);
-    }
+//    #[test]
+//    fn check_joker_is_equal_than_other() {
+//        let jk = Card { t: CType::Joker };
+//        let qu = Card { t: CType::Queen };
+//        assert_eq!(true, jk == qu);
+//    }
 
     #[test]
     fn check_joker_is_smaller_than_other() {
@@ -639,6 +470,197 @@ QQQIA 483";
         let second = "TTIKK 23";
         let hand1 = Hand::from_str(first).unwrap();
         let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_five_jokers_is_five_of_kind() {
+        let line = "IIIII 123";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(true, hand.is_five_of_kind());
+    }
+
+    #[test]
+    fn test_jokers_in_high_cards() {
+        let line = "AIKQT 123";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(true, hand.is_pair());
+    }
+
+    #[test]
+    fn test_jokers_in_high_cards_creates_bigger_pair() {
+        let first = "KIQAT 123";
+        let second = "KKQT9 123";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_jokers_expands_pair_to_three() {
+        let first = "KKIQT 123";
+        let second = "KKKQT 123";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1.is_three_of_kind());
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_equality_of_hands() {
+        let first = "AAAAA 123";
+        let second = "AAAAA 345";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 == hand2);
+        assert_eq!(false, hand1 > hand2);
+        assert_eq!(false, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_joker_pretends_from_example() {
+        let first = "QIIQ2 123";
+        let second = "IKKK2 32";
+        let hand1 = Hand::from_str(first).unwrap();
+        assert_eq!(true, hand1.is_four_of_kind());
+        let hand2 = Hand::from_str(second).unwrap();
         assert_eq!(true, hand1 > hand2);
+    }
+
+    #[test]
+    fn test_first_part_example_second_ordering_rule() {
+        let first = "33332 23";
+        let second = "2AAAA 123";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 > hand2);
+    }
+
+    #[test]
+    fn test_first_part_example_second_ordering_rule_2() {
+        let first = "77888 123";
+        let second = "77788 12";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 > hand2);
+    }
+
+    #[test]
+    fn test_three_jokers_is_not_considered_full_house() {
+        let line = "IAIAI 123";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(false, hand.is_full_house());
+    }
+
+    #[test]
+    fn test_is_three_of_kind_with_joker() {
+        let line = "AKQIQ 213";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(true, hand.is_three_of_kind());
+    }
+
+    #[test]
+    fn test_2_jokers_is_not_considered_two_pair() {
+        let line = "IAKQI 231";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(false, hand.is_two_pair());
+    }
+
+    #[test]
+    fn test_highcard_smaller_than_pair() {
+        let first = "AKQT9 21";
+        let second = "KKAQT 21";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_pair_smaller_than_two_pair() {
+        let first = "KIAQT 20";
+        let second = "KKAAQ 20";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_two_pair_smaller_than_three() {
+        let first = "KKAAQ 23";
+        let second = "KIIAQ 23";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_three_smaller_than_full_house() {
+        let first = "2333T 23";
+        let second = "23332 23";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_full_house_smaller_than_four() {
+        let first = "23332 23";
+        let second = "23333 23";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_four_smaller_than_five() {
+        let first = "23333 23";
+        let second = "33333 23";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_four_jokers_is_five_of_kind() {
+        let line = "KIIII 23";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(true, hand.is_five_of_kind());
+    }
+    #[test]
+    fn test_is_high_card() {
+        let line = "KQA23 12";
+        let hand = Hand::from_str(line).unwrap();
+        assert_eq!(true, hand.is_high_card());
+    }
+    #[test]
+    fn test_last_decides() {
+        let first = "AAAAJ 12";
+        let second = "AAAAK 12";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_three_of_kinds() {
+        let first = "QAAAK 12";
+        let second = "AQAKA 12";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+    #[test]
+    fn test_three_of_kinds_with_jokers() {
+        let first = "QAIAK 12";
+        let second = "AQIKI 12";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1 < hand2);
+    }
+
+    #[test]
+    fn test_is_four_of_kind_with_jokers() {
+        let first = "QAIII 12";
+        let second = "QIIIA 12";
+        let hand1 = Hand::from_str(first).unwrap();
+        let hand2 = Hand::from_str(second).unwrap();
+        assert_eq!(true, hand1.is_four_of_kind());
+        assert_eq!(true, hand2.is_four_of_kind());
+        assert_eq!(true, hand2 < hand1);
     }
 }
