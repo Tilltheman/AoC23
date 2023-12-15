@@ -219,6 +219,7 @@ impl FromStr for Hand {
     }
 }
 
+#[allow(dead_code)]
 impl Hand {
     fn is_five_of_kind(&self) -> bool {
         return self.h_type == HType::Five;
